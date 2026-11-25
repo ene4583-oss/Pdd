@@ -218,3 +218,37 @@ function trashPhoto_(id) {
   try { DriveApp.getFileById(id).setTrashed(true); }
   catch (error) { console.warn('Could not move old photo to Trash: ' + error.message); }
 }
+
+function getCompanySettings() {
+  const properties = PropertiesService.getScriptProperties();
+  const name = properties.getProperty('COMPANY_NAME') || '';
+  const logoId = properties.getProperty('COMPANY_LOGO_ID');
+  if (!logoId) return {name, logo: ''};
+  const blob = DriveApp.getFileById(logoId).getBlob();
+  return {name, logo: 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes())};
+}
+
+function saveCompanySettings(name, logoData, removeLogo) {
+  if (typeof name !== 'string' || name.length > 80) throw new Error('公司名称最多可输入 80 个字符。');
+  const logo = logoData ? /^data:(image\/(?:webp|png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(logoData) : null;
+  if (logoData && (!logo || logoData.length > 1024 * 1024)) throw new Error('无法保存此 Logo，请选择较小的图片。');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const properties = PropertiesService.getScriptProperties();
+    const previous = properties.getProperty('COMPANY_LOGO_ID') || '';
+    let next = removeLogo ? '' : previous;
+    if (logo) {
+      const folderId = properties.getProperty('PHOTO_FOLDER_ID');
+      if (!folderId) throw new Error('请先在 Apps Script 编辑器运行 setup。');
+      const folder = DriveApp.getFolderById(folderId);
+      next = folder.createFile(Utilities.newBlob(Utilities.base64Decode(logo[2]), logo[1], '公司 Logo')).getId();
+    }
+    properties.setProperties({COMPANY_NAME: name.trim(), COMPANY_LOGO_ID: next});
+    if (previous && previous !== next) trashPhoto_(previous);
+    return getCompanySettings();
+  } finally {
+    lock.releaseLock();
+  }
+}

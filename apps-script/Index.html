@@ -17,12 +17,22 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 
 .row-actions{display:flex;gap:6px}#saleFields{margin-top:12px}#stockError{color:#ac2836}
 .stats .card:first-child{border-color:#b0c5fa;background:#f1f5ff}
+#brandLogo{width:36px;height:36px;border-radius:8px;object-fit:contain;background:white}
+#brandName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.top-nav{display:flex;gap:8px;padding-top:14px}.top-nav button[aria-pressed="true"]{background:#eaf0fd;color:#194ac5;border-color:#bdd0fb}
+.company-panel{margin:26px 0;padding:22px;max-width:520px}.company-panel form{display:grid;gap:14px;margin-top:18px}.company-panel input{display:block;width:100%;margin-top:5px}
+#companyPreview{width:96px;height:96px;object-fit:contain;border:1px solid var(--border);border-radius:8px}#companyRemove{justify-self:start}
 </style>
 
 </head>
 <body>
-<header class="bar"><div class="wrap brand"><span class="logo" aria-hidden="true">▤</span> 商品成本台账 <span class="divider"></span><span class="sub">网卖管理</span></div></header>
+<header class="bar"><div class="wrap brand"><span class="logo" id="brandIcon" aria-hidden="true">▤</span><img id="brandLogo" alt="" hidden><span id="brandName">商品成本台账</span> <span class="divider"></span><span class="sub">网卖管理</span></div></header>
+<nav class="wrap top-nav" aria-label="页面导航">
+<button id="dashboardTab" type="button" aria-controls="dashboardPanel" aria-pressed="true">总览</button>
+<button id="settingsTab" type="button" aria-controls="settingsPanel" aria-pressed="false">设置</button>
+</nav>
 <main class="wrap">
+<div id="dashboardPanel">
 <section class="heading"><div><h1>库存与回本总览</h1><p>以下合计涵盖所有已确认进货的商品。</p></div><button class="primary" id="add">＋ 新增商品</button></section>
 <section class="stats" aria-label="库存与回本合计">
 <div class="card"><span class="stat-icon" aria-hidden="true">◎</span><span>距离整体回本还差</span><strong id="gap">—</strong></div>
@@ -40,6 +50,18 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 </section>
 <p class="foot">商品资料保存在 Google 表格，照片保存在 Google Drive。金额统一使用马币（RM）。</p>
 <p id="notice" role="status"></p>
+</div>
+<section id="settingsPanel" class="panel company-panel" hidden aria-labelledby="companyTitle">
+<h1 id="companyTitle">公司设置</h1>
+<form id="companyForm">
+<label>公司名称<input id="companyName" maxlength="80" placeholder="输入你的公司名称"></label>
+<label>公司 Logo<input id="companyLogo" type="file" accept="image/*"></label>
+<img id="companyPreview" alt="公司 Logo 预览" hidden>
+<button id="companyRemove" type="button" hidden>移除 Logo</button>
+<div><button class="primary" id="companySave" type="submit" disabled>保存设置</button></div>
+<p id="companyStatus" role="status"></p>
+</form>
+</section>
 </main>
 <dialog id="editor" aria-labelledby="editorTitle"><form id="productForm">
 <div class="modal-head"><h2 id="editorTitle"></h2><button type="button" id="close" class="icon-button" aria-label="关闭">×</button></div>
@@ -375,27 +397,124 @@ editor.addEventListener('close', () => {
   showPhoto();
 });
 form.addEventListener('input', updateEstimate);
+async function resizeImage(file, maxSide) {
+  if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024) throw new Error();
+  const bitmap = await createImageBitmap(file);
+  try {
+    const ratio = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * ratio));
+    canvas.height = Math.max(1, Math.round(bitmap.height * ratio));
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const resized = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', .85));
+    if (!resized) throw new Error();
+    return resized;
+  } finally {
+    bitmap.close();
+  }
+}
+
+let pendingLogo = '';
+let removeCompanyLogo = false;
+let companyBusy = false;
+
+function showCompanyLogo(source) {
+  const image = by('companyPreview');
+  image.hidden = !source;
+  by('companyRemove').hidden = !source;
+  if (source) image.src = source;
+  else image.removeAttribute('src');
+}
+
+function applyCompany(settings) {
+  by('brandName').textContent = settings.name || '商品成本台账';
+  by('brandLogo').hidden = !settings.logo;
+  by('brandIcon').hidden = Boolean(settings.logo);
+  if (settings.logo) by('brandLogo').src = settings.logo;
+  else by('brandLogo').removeAttribute('src');
+}
+
+function setCompanyBusy(value) {
+  companyBusy = value;
+  for (const id of ['companyName', 'companyLogo', 'companyRemove', 'companySave']) by(id).disabled = value;
+}
+
+function showSettings(open) {
+  by('dashboardPanel').hidden = open;
+  by('settingsPanel').hidden = !open;
+  by('dashboardTab').setAttribute('aria-pressed', String(!open));
+  by('settingsTab').setAttribute('aria-pressed', String(open));
+  if (!open || companyBusy) return;
+  setCompanyBusy(true);
+  by('companyStatus').textContent = '';
+  rpc('getCompanySettings').then(settings => {
+    applyCompany(settings);
+    by('companyForm').reset();
+    by('companyName').value = settings.name;
+    pendingLogo = '';
+    removeCompanyLogo = false;
+    showCompanyLogo(settings.logo);
+  }).catch(error => {
+    by('companyStatus').textContent = error.message || '无法读取公司设置。';
+  }).finally(() => setCompanyBusy(false));
+}
+
+by('dashboardTab').onclick = () => showSettings(false);
+by('settingsTab').onclick = () => {
+  if (by('settingsPanel').hidden) showSettings(true);
+};
+by('companyLogo').onchange = async () => {
+  const file = by('companyLogo').files[0];
+  if (!file || companyBusy) return;
+  setCompanyBusy(true);
+  by('companyStatus').textContent = '';
+  try {
+    pendingLogo = await asDataUrl(await resizeImage(file, 320));
+    removeCompanyLogo = false;
+    showCompanyLogo(pendingLogo);
+  } catch {
+    by('companyLogo').value = '';
+    by('companyStatus').textContent = '无法读取 Logo，请选择小于 20 MB 的图片。';
+  } finally {
+    setCompanyBusy(false);
+  }
+};
+by('companyRemove').onclick = () => {
+  pendingLogo = '';
+  removeCompanyLogo = true;
+  by('companyLogo').value = '';
+  showCompanyLogo('');
+};
+by('companyForm').onsubmit = async event => {
+  event.preventDefault();
+  if (companyBusy) return;
+  setCompanyBusy(true);
+  by('companyStatus').textContent = '';
+  try {
+    const saved = await rpc('saveCompanySettings', by('companyName').value, pendingLogo, removeCompanyLogo);
+    applyCompany(saved);
+    by('companyName').value = saved.name;
+    by('companyLogo').value = '';
+    pendingLogo = '';
+    removeCompanyLogo = false;
+    showCompanyLogo(saved.logo);
+    by('companyStatus').textContent = '公司设置已保存。';
+  } catch (error) {
+    by('companyStatus').textContent = error.message || '无法保存设置。';
+  } finally {
+    setCompanyBusy(false);
+  }
+};
+rpc('getCompanySettings').then(applyCompany).catch(() => {});
+
 by('photo').onchange = async () => {
   const file = by('photo').files[0];
   if (!file) return;
   by('error').textContent = '';
   setBusy(true);
   try {
-    if (!file.type.startsWith('image/') || file.size > 20 * 1024 * 1024) throw new Error();
-    const bitmap = await createImageBitmap(file);
-    try {
-      const ratio = Math.min(1, 900 / Math.max(bitmap.width, bitmap.height));
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(bitmap.width * ratio));
-      canvas.height = Math.max(1, Math.round(bitmap.height * ratio));
-      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      const compressed = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', .85));
-      if (!compressed) throw new Error();
-      photo = compressed;
-      showPhoto();
-    } finally {
-      bitmap.close();
-    }
+    photo = await resizeImage(file, 900);
+    showPhoto();
   } catch {
     by('photo').value = '';
     by('error').textContent = '无法读取照片。请选择可打开且小于 20 MB 的图片。';
