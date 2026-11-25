@@ -1,6 +1,6 @@
 const PRODUCT_TAB = '网卖商品';
 const FIELDS = ['price', 'purchase', 'packaging', 'shipping', 'rate', 'other'];
-const HEADERS = ['商品 ID', '商品名称', 'SKU', '售价', '进货成本', '包装费', '卖家运费', '平台费率', '其他费用', '平台费', '单件总成本', '预估利润', '利润率', '照片文件 ID', '更新版本'];
+const HEADERS = ['商品 ID', '商品名称', 'SKU', '售价', '进货成本', '包装费', '卖家运费', '平台费率', '其他费用', '平台费', '单件总成本', '预估利润', '利润率', '照片文件 ID', '更新版本', '目标利润率', '建议售价 (RM)'];
 
 function setup() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -18,9 +18,23 @@ function setup() {
     sheet.getRange('I2:L').setNumberFormat('0.00');
     sheet.setColumnWidth(2, 180);
     sheet.hideColumns(14, 2);
-  } else if (sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0].join('|') !== HEADERS.join('|')) {
-    throw new Error('已有同名工作表，请更名后重新执行 setup。');
+  } else {
+    const existing = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
+    if (existing.slice(0, 15).join('|') !== HEADERS.slice(0, 15).join('|') ||
+        existing.slice(15).some((value, index) => value && value !== HEADERS[index + 15])) {
+      throw new Error('已有同名工作表，请更名后重新执行 setup。');
+    }
+    if (!existing[15] && !existing[16]) {
+      const rows = productRows_(sheet);
+      if (rows.length) sheet.getRange(2, 16, rows.length, 2).setValues(rows.map((row, index) =>
+        row[0] ? [0.2, suggestionFormula_(index + 2)] : ['', '']));
+      sheet.getRange(1, 16, 1, 2).setValues([HEADERS.slice(15)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+    }
   }
+  sheet.getRange('P2:P').setNumberFormat('0.00%');
+  sheet.getRange('Q2:Q').setNumberFormat('"RM "0.00');
+  sheet.getRange('D2:G').setNumberFormat('"RM "0.00');
+  sheet.getRange('I2:L').setNumberFormat('"RM "0.00');
   if (!properties.getProperty('PHOTO_FOLDER_ID')) {
     const folder = DriveApp.createFolder('商品成本台账照片');
     properties.setProperty('PHOTO_FOLDER_ID', folder.getId());
@@ -49,7 +63,7 @@ function product_(row) {
   return {
     id: row[0], name: row[1], sku: String(row[2]), price: cents(row[3]), purchase: cents(row[4]),
     packaging: cents(row[5]), shipping: cents(row[6]), rate: Math.round(Number(row[7]) * 10000),
-    other: cents(row[8]), photo: Boolean(row[13]), revision: row[14],
+    other: cents(row[8]), photo: Boolean(row[13]), revision: row[14], target: row[15] === '' ? 2000 : Math.round(Number(row[15]) * 10000),
   };
 }
 
@@ -68,6 +82,7 @@ function saveProduct(input, photoData) {
   if (!input || !/^[0-9a-f-]{36}$/.test(input.id) ||
       typeof input.name !== 'string' || !input.name.trim() || input.name.length > 100 ||
       typeof input.sku !== 'string' || input.sku.length > 60 ||
+      !Number.isInteger(input.target) || input.target < 0 || input.target > 10000 ||
       FIELDS.some(key => !Number.isSafeInteger(input[key]) || input[key] < 0 ||
         input[key] > (key === 'rate' ? 10000 : 99999999900))) throw new Error('请检查商品名称和金额。');
   const photo = photoData ? /^data:(image\/(?:webp|png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(photoData) : null;
@@ -100,7 +115,7 @@ function saveProduct(input, photoData) {
       '=ROUND(SUM(E' + rowNumber + ':G' + rowNumber + ',I' + rowNumber + ':J' + rowNumber + '),2)',
       '=ROUND(D' + rowNumber + '-K' + rowNumber + ',2)',
       '=IF(D' + rowNumber + '=0,"",L' + rowNumber + '/D' + rowNumber + ')',
-      file, Utilities.getUuid(),
+      file, Utilities.getUuid(), input.target / 10000, suggestionFormula_(rowNumber),
     ];
     sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
     SpreadsheetApp.flush();
@@ -109,6 +124,11 @@ function saveProduct(input, photoData) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function suggestionFormula_(row) {
+  return '=IF(H' + row + '+P' + row + '>=1,"",MAX(0.01,ROUNDUP((SUM(E' + row + ':G' +
+    row + ',I' + row + ')+IF(H' + row + '>0,0.005,0))/(1-H' + row + '-P' + row + '),2)))';
 }
 
 function deleteProduct(id, revision) {
