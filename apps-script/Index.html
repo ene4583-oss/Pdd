@@ -66,10 +66,10 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 <p id="stockHint"></p>
 <div id="saleFields" class="fields">
 <label>本次出货数量（件）<input name="quantity" type="number" min="1" step="1" required></label>
-<label>本次实际销售收入（RM）<input name="revenue" type="number" min="0" max="999999999" step="0.01" required></label>
-<label>本次实际销售费用（RM，选填）<input name="costs" type="number" min="0" max="999999999" step="0.01"></label>
+<label>这次卖货收了多少（RM）<input name="revenue" placeholder="填全部出货的收入总额" type="number" min="0" max="999999999" step="0.01" required></label>
+<label>这次卖货花了多少（RM，选填）<input name="costs" placeholder="平台费、包装费、卖家运费等" type="number" min="0" max="999999999" step="0.01"></label>
 </div>
-<p id="estimatedSaleCosts" hidden>销售费用留空时，按商品设定的平台费率、包装、运费和其他费用估算。</p>
+<p id="estimatedSaleCosts" hidden>收入填扣费前的总额。卖货费用留空时，系统按商品设置估算。</p>
 <p id="stockError" role="alert"></p>
 </div>
 <div class="modal-foot"><div class="actions"><button class="primary" id="stockSave" type="submit"></button></div></div>
