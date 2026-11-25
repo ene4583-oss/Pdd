@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="管理网卖商品，计算单件成本和预估利润">
+<title>商品成本台账</title>
+<link rel="stylesheet" href="style.css">
+<script defer src="app.js"></script>
+</head>
+<body>
+<header class="bar"><div class="wrap brand"><span class="logo" aria-hidden="true">▤</span> 商品成本台账 <span class="divider"></span><span class="sub">网卖管理</span></div></header>
+<main class="wrap">
+<section class="heading"><div><h1>商品总览</h1><p>记录商品和费用，算清每件商品能赚多少。</p></div><button class="primary" id="add">＋ 新增商品</button></section>
+<section class="stats" aria-label="商品摘要">
+<div class="card"><span class="stat-icon" aria-hidden="true">▤</span><span>商品数量</span><strong id="count">0</strong></div>
+<div class="card"><span class="stat-icon" aria-hidden="true">↘</span><span>平均单件成本</span><strong id="avgCost">—</strong></div>
+<div class="card"><span class="stat-icon" aria-hidden="true">↗</span><span>平均单件利润</span><strong id="avgProfit">—</strong></div>
+</section>
+<section class="panel" aria-labelledby="listTitle">
+<div class="toolbar"><h2 id="listTitle">商品列表</h2><div class="filters"><input id="search" type="search" placeholder="搜索商品名称或 SKU" aria-label="搜索商品"><select id="currency" aria-label="计价币种"><option value="SGD">SGD 新加坡元</option><option value="MYR">MYR 马来西亚令吉</option><option value="CNY">CNY 人民币</option><option value="USD">USD 美元</option><option value="TWD">TWD 新台币</option><option value="HKD">HKD 港币</option></select></div></div>
+<div class="scroll"><table><thead><tr><th scope="col">商品</th><th scope="col">售价</th><th scope="col">单件总成本</th><th scope="col">预估利润</th><th scope="col">利润率</th><th scope="col">操作</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div id="empty" class="empty" hidden><div class="empty-icon" aria-hidden="true">▤</div><h3 id="emptyTitle"></h3><p id="emptyText"></p><button class="primary" id="emptyAdd">＋ 新增商品</button></div>
+<div id="listFooter" class="list-footer"></div>
+</section>
+<p class="foot">商品和照片保存于云端，使用同一账号即可跨设备查看。切换币种只会更改显示单位，金额不会换算。</p>
+<p id="notice" role="status"></p>
+</main>
+<dialog id="editor" aria-labelledby="editorTitle"><form id="productForm">
+<div class="modal-head"><h2 id="editorTitle"></h2><button type="button" id="close" class="icon-button" aria-label="关闭">×</button></div>
+<div class="modal-body">
+<div class="photo"><img id="photoPreview" alt="商品照片预览" hidden><div><label for="photo">商品照片</label><input id="photo" type="file" accept="image/*"><button id="removePhoto" type="button" class="link" hidden>移除照片</button></div></div>
+<div class="fields"><label>商品名称<input name="name" required maxlength="100" placeholder="例如 帆布手提包"></label><label>SKU（选填）<input name="sku" maxlength="60" placeholder="例如 BAG-001"></label></div>
+<h3>售价与单件费用 <span id="formCurrency"></span></h3>
+<div class="fields">
+<label>售价<input name="price" type="number" min="0" max="999999999" step="0.01" required placeholder="0.00"></label>
+<label>进货成本<input name="purchase" type="number" min="0" max="999999999" step="0.01" required placeholder="0.00"></label>
+<label>包装费<input name="packaging" type="number" min="0" max="999999999" step="0.01" placeholder="0.00"></label>
+<label>卖家承担的运费<input name="shipping" type="number" min="0" max="999999999" step="0.01" placeholder="0.00"></label>
+<label>平台费率 (%)<input name="rate" type="number" min="0" max="100" step="0.01" placeholder="0"></label>
+<label>其他费用<input name="other" type="number" min="0" max="999999999" step="0.01" placeholder="0.00"></label>
+</div>
+<div class="estimate"><div>平台费 <strong id="fee"></strong></div><div>单件总成本 <strong id="cost"></strong></div><div>预估利润 <strong id="profit"></strong></div><div>利润率 <strong id="margin"></strong></div></div>
+<p id="error" role="alert"></p>
+</div>
+<div class="modal-foot"><button type="button" id="delete" class="danger">删除商品</button><div class="actions"><button type="button" id="cancel">取消</button><button class="primary" id="save" type="submit">保存商品</button></div></div>
+</form></dialog>
+</body>
+</html>
