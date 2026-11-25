@@ -70,10 +70,10 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 <p id="stockHint"></p>
 <div id="saleFields" class="fields">
 <label>本次出货数量（件）<input name="quantity" type="number" min="1" step="1" required></label>
-<label>这次卖货收了多少（RM）<input name="revenue" placeholder="填全部出货的收入总额" type="number" min="0" max="999999999" step="0.01" required></label>
-<label>这次卖货花了多少（RM，选填）<input name="costs" placeholder="平台费、包装费、卖家运费等" type="number" min="0" max="999999999" step="0.01"></label>
+<label><span id="stockRevenueLabel">本次销售收入（RM）</span><input name="revenue" placeholder="填全部出货的收入总额" type="number" min="0" max="999999999" step="0.01" required></label>
+<label>本次包装费（RM）<input name="packaging" type="number" min="0" max="999999999" step="0.01" value="0"></label>
 </div>
-<p id="estimatedSaleCosts" hidden>收入填扣费前的总额。卖货费用留空时，系统按商品设置估算。</p>
+<p id="estimatedSaleCosts" hidden>包装费填本次出货的总额，默认 RM 0。平台费、卖家运费和其他费用按商品设定计算。</p>
 <p id="stockError" role="alert"></p>
 </div>
 <div class="modal-foot"><div class="actions"><button class="primary" id="stockSave" type="submit"></button></div></div>
@@ -309,8 +309,11 @@ function openStock(product) {
   by('stockTitle').textContent = product.name + ' · ' + (product.received ? '出货与回本' : '确认进货');
   by('stockHint').textContent = product.received ? '' : '确认后会计入已投入成本，并锁定本批进货金额和数量。';
   by('saleFields').hidden = by('estimatedSaleCosts').hidden = !canShip;
-  for (const key of ['quantity', 'revenue', 'costs']) stockForm.elements[key].disabled = !canShip;
+  for (const key of ['quantity', 'revenue', 'packaging']) stockForm.elements[key].disabled = !canShip;
   stockForm.elements.quantity.max = remaining;
+  stockForm.elements.revenue.readOnly = product.price != null;
+  by('stockRevenueLabel').textContent = product.price == null ? '本次销售收入（RM）' : '自动计算收入（RM）';
+  stockForm.elements.revenue.placeholder = product.price == null ? '填扣费前的收入总额' : '售价 × 出货数量';
   const net = product.revenue - product.sellingCosts;
   const items = product.received ? [
     ['已投入进货成本', money(product.purchaseTotal)],
@@ -329,6 +332,12 @@ function openStock(product) {
   stockEditor.showModal();
 }
 
+stockForm.elements.quantity.addEventListener('input', () => {
+  if (stockProduct.price == null) return;
+  const {quantity, revenue} = stockForm.elements;
+  revenue.value = quantity.validity.valid ? (stockProduct.price * Number(quantity.value) / 100).toFixed(2) : '';
+});
+
 by('stockClose').onclick = () => stockEditor.close();
 stockEditor.addEventListener('cancel', event => { if (stockBusy) event.preventDefault(); });
 stockForm.onsubmit = async event => {
@@ -337,8 +346,8 @@ stockForm.onsubmit = async event => {
   const fields = stockForm.elements;
   const sale = stockProduct.received ? {
     quantity: Number(fields.quantity.value),
-    revenue: Math.round(Number(fields.revenue.value) * 100),
-    costs: fields.costs.value === '' ? null : Math.round(Number(fields.costs.value) * 100)
+    revenue: stockProduct.price == null ? Math.round(Number(fields.revenue.value) * 100) : null,
+    packaging: Math.round(Number(fields.packaging.value) * 100)
   } : null;
   stockBusy = true;
   by('stockSave').disabled = by('stockClose').disabled = true;

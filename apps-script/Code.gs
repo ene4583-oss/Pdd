@@ -166,19 +166,22 @@ function recordInventory(id, revision, sale) {
       if (row[18] === '') row[18] = product.quantity;
     } else {
       if (!product.received) throw new Error('请先确认进货。');
-      if (!Number.isInteger(sale.quantity) || sale.quantity < 1 || sale.quantity > product.quantity - product.sold ||
-          !Number.isSafeInteger(sale.revenue) || sale.revenue < 0 || sale.revenue > 99999999900) {
-        throw new Error('请检查出货数量和实际销售收入。出货数量不能超过库存。');
+      if (!Number.isInteger(sale.quantity) || sale.quantity < 1 || sale.quantity > product.quantity - product.sold) {
+        throw new Error('出货数量必须大于零，且不能超过库存。');
       }
-      const fee = Math.round(sale.revenue * product.rate / 10000);
-      const estimated = fee + sale.quantity * (product.packaging + product.shipping + product.other);
-      const costs = sale.costs === null ? estimated : sale.costs;
-      if (!Number.isSafeInteger(costs) || costs < 0 || costs > 99999999900 ||
-          product.revenue + sale.revenue > 99999999900 || product.sellingCosts + costs > 99999999900) {
+      const revenue = product.price === null ? sale.revenue : product.price * sale.quantity;
+      if (!Number.isSafeInteger(revenue) || revenue < 0 || revenue > 99999999900 ||
+          !Number.isSafeInteger(sale.packaging) || sale.packaging < 0 || sale.packaging > 99999999900) {
+        throw new Error('请检查本次销售收入和包装费。');
+      }
+      const fee = Math.round(revenue * product.rate / 10000);
+      const costs = fee + sale.packaging + sale.quantity * (product.shipping + product.other);
+      if (!Number.isSafeInteger(costs) || costs > 99999999900 ||
+          product.revenue + revenue > 99999999900 || product.sellingCosts + costs > 99999999900) {
         throw new Error('销售金额或费用超出可记录范围。');
       }
       row[20] = product.sold + sale.quantity;
-      row[21] = (product.revenue + sale.revenue) / 100;
+      row[21] = (product.revenue + revenue) / 100;
       row[22] = (product.sellingCosts + costs) / 100;
     }
     row[14] = Utilities.getUuid();
