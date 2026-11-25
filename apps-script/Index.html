@@ -44,14 +44,15 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 <h3>售价与单件费用 <span id="formCurrency"></span></h3>
 <div class="fields">
 <label>售价<input name="price" type="number" min="0" max="999999999" step="0.01" required placeholder="0.00"></label>
-<label>进货成本<input name="purchase" type="number" min="0" max="999999999" step="0.01" required placeholder="0.00"></label>
+<label>进货总金额<input name="purchaseTotal" type="number" min="0" max="999999999" step="0.01" required placeholder="0.00"></label>
+<label>进货数量（件）<input name="quantity" type="number" min="1" max="999999999" step="1" required placeholder="例如 50"></label>
 <label>包装费<input name="packaging" type="number" min="0" max="999999999" step="0.01" placeholder="0.00"></label>
 <label>卖家承担的运费<input name="shipping" type="number" min="0" max="999999999" step="0.01" placeholder="0.00"></label>
 <label>平台费率 (%)<input name="rate" type="number" min="0" max="100" step="0.01" placeholder="0"></label>
 <label>目标利润率 (%)<input name="target" type="number" min="0" max="100" step="0.01" value="20" required></label>
 <label>其他费用<input name="other" type="number" min="0" max="999999999" step="0.01" placeholder="0.00"></label>
 </div>
-<div class="estimate"><div>建议售价 <strong id="suggested"></strong></div><div>平台费 <strong id="fee"></strong></div><div>单件总成本 <strong id="cost"></strong></div><div>预估利润 <strong id="profit"></strong></div><div>利润率 <strong id="margin"></strong></div></div>
+<div class="estimate"><div>每件进货成本 <strong id="unitPurchase"></strong></div><div>建议售价 <strong id="suggested"></strong></div><div>平台费 <strong id="fee"></strong></div><div>单件总成本 <strong id="cost"></strong></div><div>预估利润 <strong id="profit"></strong></div><div>利润率 <strong id="margin"></strong></div></div>
 <p id="error" role="alert"></p>
 </div>
 <div class="modal-foot"><button type="button" id="delete" class="danger">删除商品</button><div class="actions"><button type="button" id="cancel">取消</button><button class="primary" id="save" type="submit">保存商品</button></div></div>
@@ -60,7 +61,7 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 const by = id => document.getElementById(id);
 const form = by('productForm');
 const editor = by('editor');
-const amounts = ['price', 'purchase', 'packaging', 'shipping', 'rate', 'other', 'target'];
+const amounts = ['price', 'purchaseTotal', 'packaging', 'shipping', 'rate', 'other', 'target'];
 let ready = false, products = [], active, photo, preview, busy = false;
 const money = cents => 'RM ' + (cents / 100).toLocaleString('en-MY', {
   minimumFractionDigits: 2, maximumFractionDigits: 2
@@ -171,16 +172,21 @@ function render() {
 }
 
 function readAmounts() {
-  return Object.fromEntries(amounts.map(key => [key, Math.round((Number(form.elements[key].value) || 0) * 100)]));
+  const values = Object.fromEntries(amounts.map(key => [key, Math.round((Number(form.elements[key].value) || 0) * 100)]));
+  const quantity = Number(form.elements.quantity.value);
+  const purchase = quantity > 0 ? Math.round(values.purchaseTotal / quantity) : 0;
+  return {...values, quantity, purchase};
 }
 
 function updateEstimate() {
   const input = readAmounts();
-  const canSuggest = form.elements.purchase.validity.valid &&
+  const validPurchase = form.elements.purchaseTotal.validity.valid && form.elements.quantity.validity.valid;
+  by('unitPurchase').textContent = validPurchase ? money(input.purchase) : '—';
+  const canSuggest = validPurchase &&
     ['packaging', 'shipping', 'rate', 'other', 'target'].every(key => form.elements[key].validity.valid);
   const recommendation = canSuggest ? calculate({...input, price: 0}).suggested : null;
   by('suggested').textContent = recommendation == null ? (canSuggest ? '费率与目标合计须低于 100%' : '—') : money(recommendation);
-  const valid = amounts.every(key => form.elements[key].validity.valid || form.elements[key].validity.valueMissing);
+  const valid = validPurchase && amounts.every(key => form.elements[key].validity.valid || form.elements[key].validity.valueMissing);
   const values = valid ? calculate(input) : {};
   for (const id of ['fee', 'cost', 'profit']) by(id).textContent = values[id] == null ? '—' : money(values[id]);
   by('margin').textContent = percentage(values.margin);
@@ -214,6 +220,7 @@ function openEditor(product) {
   if (product) {
     form.elements.name.value = product.name;
     form.elements.sku.value = product.sku;
+    form.elements.quantity.value = product.quantity;
     for (const key of amounts) form.elements[key].value = product[key] / 100;
   }
   showPhoto();

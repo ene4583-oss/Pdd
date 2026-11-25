@@ -1,6 +1,6 @@
 const PRODUCT_TAB = '网卖商品';
-const FIELDS = ['price', 'purchase', 'packaging', 'shipping', 'rate', 'other'];
-const HEADERS = ['商品 ID', '商品名称', 'SKU', '售价', '进货成本', '包装费', '卖家运费', '平台费率', '其他费用', '平台费', '单件总成本', '预估利润', '利润率', '照片文件 ID', '更新版本', '目标利润率', '建议售价 (RM)'];
+const FIELDS = ['price', 'purchaseTotal', 'packaging', 'shipping', 'rate', 'other'];
+const HEADERS = ['商品 ID', '商品名称', 'SKU', '售价', '进货成本', '包装费', '卖家运费', '平台费率', '其他费用', '平台费', '单件总成本', '预估利润', '利润率', '照片文件 ID', '更新版本', '目标利润率', '建议售价 (RM)', '进货总金额 (RM)', '进货数量'];
 
 function setup() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -28,9 +28,12 @@ function setup() {
       const rows = productRows_(sheet);
       if (rows.length) sheet.getRange(2, 16, rows.length, 2).setValues(rows.map((row, index) =>
         row[0] ? [0.2, suggestionFormula_(index + 2)] : ['', '']));
-      sheet.getRange(1, 16, 1, 2).setValues([HEADERS.slice(15)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+      sheet.getRange(1, 16, 1, 2).setValues([HEADERS.slice(15, 17)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
     }
   }
+  sheet.getRange(1, 18, 1, 2).setValues([HEADERS.slice(17)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+  sheet.getRange('R2:R').setNumberFormat('"RM "0.00');
+  sheet.getRange('S2:S').setNumberFormat('0');
   sheet.getRange('P2:P').setNumberFormat('0.00%');
   sheet.getRange('Q2:Q').setNumberFormat('"RM "0.00');
   sheet.getRange('D2:G').setNumberFormat('"RM "0.00');
@@ -62,6 +65,7 @@ function product_(row) {
   const cents = value => Math.round(Number(value) * 100);
   return {
     id: row[0], name: row[1], sku: String(row[2]), price: cents(row[3]), purchase: cents(row[4]),
+    purchaseTotal: row[17] === '' ? cents(row[4]) : cents(row[17]), quantity: Number(row[18]) || 1,
     packaging: cents(row[5]), shipping: cents(row[6]), rate: Math.round(Number(row[7]) * 10000),
     other: cents(row[8]), photo: Boolean(row[13]), revision: row[14], target: row[15] === '' ? 2000 : Math.round(Number(row[15]) * 10000),
   };
@@ -82,6 +86,7 @@ function saveProduct(input, photoData) {
   if (!input || !/^[0-9a-f-]{36}$/.test(input.id) ||
       typeof input.name !== 'string' || !input.name.trim() || input.name.length > 100 ||
       typeof input.sku !== 'string' || input.sku.length > 60 ||
+      !Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 999999999 ||
       !Number.isInteger(input.target) || input.target < 0 || input.target > 10000 ||
       FIELDS.some(key => !Number.isSafeInteger(input[key]) || input[key] < 0 ||
         input[key] > (key === 'rate' ? 10000 : 99999999900))) throw new Error('请检查商品名称和金额。');
@@ -110,12 +115,13 @@ function saveProduct(input, photoData) {
     const textCell = value => "'" + value;
     const row = [
       input.id, textCell(input.name.trim()), input.sku.trim() ? textCell(input.sku.trim()) : '', input.price / 100,
-      input.purchase / 100, input.packaging / 100, input.shipping / 100, input.rate / 10000, input.other / 100,
+      '=IF(OR(R' + rowNumber + '="",S' + rowNumber + '<1),"",ROUND(R' + rowNumber + '/S' + rowNumber + ',2))',
+      input.packaging / 100, input.shipping / 100, input.rate / 10000, input.other / 100,
       '=ROUND(D' + rowNumber + '*H' + rowNumber + ',2)',
       '=ROUND(SUM(E' + rowNumber + ':G' + rowNumber + ',I' + rowNumber + ':J' + rowNumber + '),2)',
       '=ROUND(D' + rowNumber + '-K' + rowNumber + ',2)',
       '=IF(D' + rowNumber + '=0,"",L' + rowNumber + '/D' + rowNumber + ')',
-      file, Utilities.getUuid(), input.target / 10000, suggestionFormula_(rowNumber),
+      file, Utilities.getUuid(), input.target / 10000, suggestionFormula_(rowNumber), input.purchaseTotal / 100, input.quantity,
     ];
     sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
     SpreadsheetApp.flush();
