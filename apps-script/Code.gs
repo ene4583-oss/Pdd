@@ -1,6 +1,6 @@
 const PRODUCT_TAB = '网卖商品';
 const FIELDS = ['price', 'purchaseTotal', 'packaging', 'shipping', 'rate', 'other'];
-const HEADERS = ['商品 ID', '商品名称', 'SKU', '售价', '进货成本', '包装费', '卖家运费', '平台费率', '其他费用', '平台费', '单件总成本', '预估利润', '利润率', '照片文件 ID', '更新版本', '目标利润率', '建议售价 (RM)', '进货总金额 (RM)', '进货数量', '进货确认时间', '累计出货数量', '实际销售收入', '已记销售费用'];
+const HEADERS = ['商品 ID', '商品名称', 'SKU', '售价', '进货成本', '包装费', '卖家运费', '平台费率', '其他费用', '平台费', '单件总成本', '预估利润', '利润率', '照片文件 ID', '更新版本', '目标利润率', '建议售价 (RM)', '进货总金额 (RM)', '进货数量', '进货确认时间', '累计出货数量', '实际销售收入', '已记销售费用', '补货记录'];
 
 function setup() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -32,7 +32,9 @@ function setup() {
     }
   }
   sheet.getRange(1, 18, 1, 2).setValues([HEADERS.slice(17, 19)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
-  sheet.getRange(1, 20, 1, 4).setValues([HEADERS.slice(19)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+  sheet.getRange(1, 20, 1, 4).setValues([HEADERS.slice(19, 23)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+  sheet.getRange(1, 24).setValue(HEADERS[23]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+  sheet.hideColumns(24);
   sheet.getRange('T2:T').setNumberFormat('yyyy-mm-dd hh:mm');
   sheet.getRange('V2:W').setNumberFormat('"RM "0.00');
   sheet.getRange('R2:R').setNumberFormat('"RM "0.00');
@@ -70,6 +72,7 @@ function product_(row) {
     id: row[0], name: row[1], sku: String(row[2]), price: row[3] === '' ? null : cents(row[3]), purchase: cents(row[4]),
     purchaseTotal: row[17] === '' ? cents(row[4]) : cents(row[17]), quantity: Number(row[18]) || 1,
     received: Boolean(row[19]), sold: Number(row[20]) || 0, revenue: cents(row[21]), sellingCosts: cents(row[22]),
+    restocks: row[23] ? JSON.parse(row[23]) : [],
     packaging: cents(row[5]), shipping: cents(row[6]), rate: Math.round(Number(row[7]) * 10000),
     other: cents(row[8]), photo: Boolean(row[13]), revision: row[14], target: row[15] === '' ? 2000 : Math.round(Number(row[15]) * 10000),
   };
@@ -110,7 +113,7 @@ function saveProduct(input, photoData) {
     if (current && current[19]) {
       const recorded = product_(current);
       if (input.purchaseTotal !== recorded.purchaseTotal || input.quantity !== recorded.quantity) {
-        throw new Error('进货已确认，原批次的数量和金额已锁定。');
+        throw new Error('进货已确认，请使用「补货」更新进货数量和金额。');
       }
     }
     const rowNumber = index >= 0 ? index + 2 : sheet.getLastRow() + 1;
@@ -132,7 +135,7 @@ function saveProduct(input, photoData) {
       '=IF(D' + rowNumber + '=,,ROUND(D' + rowNumber + '-K' + rowNumber + ',2))',
       '=IF(D' + rowNumber + '=0,"",L' + rowNumber + '/D' + rowNumber + ')',
       file, Utilities.getUuid(), input.target / 10000, suggestionFormula_(rowNumber), input.purchaseTotal / 100, input.quantity,
-      ...(current ? current.slice(19, 23) : ['', 0, 0, 0]),
+      ...(current ? current.slice(19, 24) : ['', 0, 0, 0, '']),
     ];
     sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
     SpreadsheetApp.flush();
@@ -148,7 +151,16 @@ function suggestionFormula_(row) {
     row + ',I' + row + ')+IF(H' + row + '>0,0.005,0))/(1-H' + row + '-P' + row + '),2)))';
 }
 
+function recordRestock(id, revision, restock) {
+  if (!restock) throw new Error('请输入补货件数和金额。');
+  return updateInventory_(id, revision, null, restock);
+}
+
 function recordInventory(id, revision, sale) {
+  return updateInventory_(id, revision, sale, null);
+}
+
+function updateInventory_(id, revision, sale, restock) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -158,7 +170,22 @@ function recordInventory(id, revision, sale) {
     if (index < 0 || rows[index][14] !== revision) throw new Error('商品已更新，请刷新后再试。');
     const row = rows[index];
     const product = product_(row);
-    if (!sale) {
+    if (restock) {
+      if (!product.received) throw new Error('请先确认首次进货。');
+      if (sheet.getRange(1, 24).getValue() !== HEADERS[23]) throw new Error('请先运行新版 setup，再记录补货。');
+      const {quantity, total} = restock;
+      const newQuantity = product.quantity + quantity;
+      const newTotal = product.purchaseTotal + total;
+      if (!Number.isSafeInteger(quantity) || quantity < 1 || newQuantity > 999999999 ||
+          !Number.isSafeInteger(total) || total < 0 || newTotal > 99999999900) {
+        throw new Error('请检查补货件数和金额。');
+      }
+      const history = JSON.stringify([...product.restocks, {date: new Date().toISOString(), quantity, total}]);
+      if (history.length > 49000) throw new Error('此商品的补货记录已达工作表容量。');
+      row[17] = newTotal / 100;
+      row[18] = newQuantity;
+      row[23] = history;
+    } else if (!sale) {
       if (product.received) return product;
       row[19] = new Date();
       // Convert legacy unit-only entries to a one-item batch when confirmed.
@@ -188,10 +215,10 @@ function recordInventory(id, revision, sale) {
     // Preserve the existing spreadsheet formulas between version and inventory fields.
     const values = [row[14], ...sheet.getRange(index + 2, 16, 1, 2).getValues()[0]];
     values[2] = sheet.getRange(index + 2, 17).getFormula() || values[2];
-    values.push(...row.slice(17, 23));
+    values.push(...row.slice(17, 24));
     sheet.getRange(index + 2, 15, 1, values.length).setValues([values]);
     SpreadsheetApp.flush();
-    return product_(row);
+    return product_(sheet.getRange(index + 2, 1, 1, HEADERS.length).getValues()[0]);
   } finally {
     lock.releaseLock();
   }

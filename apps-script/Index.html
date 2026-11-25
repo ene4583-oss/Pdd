@@ -22,6 +22,7 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 .top-nav{display:flex;gap:8px;padding-top:14px}.top-nav button[aria-pressed="true"]{background:#eaf0fd;color:#194ac5;border-color:#bdd0fb}
 .company-panel{margin:26px 0;padding:22px;max-width:520px}.company-panel form{display:grid;gap:14px;margin-top:18px}.company-panel input{display:block;width:100%;margin-top:5px}
 #companyPreview{width:96px;height:96px;object-fit:contain;border:1px solid var(--border);border-radius:8px}#companyRemove{justify-self:start}
+.restock-history{padding-inline-start:22px;max-height:170px;overflow:auto;line-height:1.7;font-size:14px}#restockError{color:#ac2836}
 </style>
 
 </head>
@@ -99,6 +100,22 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 <p id="stockError" role="alert"></p>
 </div>
 <div class="modal-foot"><div class="actions"><button class="primary" id="stockSave" type="submit"></button></div></div>
+</form>
+</dialog>
+<dialog id="restockEditor" aria-labelledby="restockTitle">
+<form id="restockForm">
+<div class="modal-head"><h2 id="restockTitle"></h2><button type="button" class="icon-button" id="restockClose" aria-label="关闭">×</button></div>
+<div class="modal-body">
+<div class="fields">
+<label>本次补货数量（件）<input name="quantity" type="number" min="1" max="999999999" step="1" required></label>
+<label>本次进货总金额（RM）<input name="total" type="number" min="0" max="999999999" step="0.01" required></label>
+</div>
+<h3>补货记录</h3>
+<p id="restockEmpty">还没有补货记录。</p>
+<ul id="restockHistory" class="restock-history"></ul>
+<p id="restockError" role="alert"></p>
+</div>
+<div class="modal-foot"><div class="actions"><button class="primary" id="restockSave" type="submit">保存补货</button></div></div>
 </form>
 </dialog>
 <script>
@@ -227,6 +244,11 @@ function render() {
     stock.addEventListener('click', () => openStock(p));
     const actions = element('div', null, 'row-actions');
     actions.append(edit, stock);
+    if (p.received) {
+      const restock = element('button', '补货');
+      restock.addEventListener('click', () => openRestock(p));
+      actions.append(restock);
+    }
     row.insertCell().append(actions);
   }
   const totals = summarizeInventory(products);
@@ -319,6 +341,51 @@ async function refresh() {
   render();
 }
 
+const restockEditor = by('restockEditor');
+const restockForm = by('restockForm');
+let restockProduct;
+let restockBusy = false;
+
+function openRestock(product) {
+  restockProduct = product;
+  restockForm.reset();
+  by('restockTitle').textContent = product.name + ' · 补货';
+  by('restockError').textContent = '';
+  const history = product.restocks || [];
+  by('restockEmpty').hidden = history.length > 0;
+  by('restockHistory').hidden = history.length === 0;
+  const dateFormat = new Intl.DateTimeFormat('zh-MY', {
+    timeZone: 'Asia/Kuala_Lumpur', dateStyle: 'medium', timeStyle: 'short'
+  });
+  by('restockHistory').replaceChildren(...history.slice().reverse().map(entry =>
+    element('li', dateFormat.format(new Date(entry.date)) + ' · ' + entry.quantity + ' 件 · ' + money(entry.total))));
+  restockEditor.showModal();
+}
+
+by('restockClose').onclick = () => restockEditor.close();
+restockEditor.addEventListener('cancel', event => { if (restockBusy) event.preventDefault(); });
+restockForm.onsubmit = async event => {
+  event.preventDefault();
+  if (restockBusy) return;
+  const {quantity, total} = restockForm.elements;
+  const entry = {quantity: Number(quantity.value), total: Math.round(Number(total.value) * 100)};
+  restockBusy = true;
+  by('restockSave').disabled = by('restockClose').disabled = true;
+  by('restockError').textContent = '';
+  try {
+    const saved = await rpc('recordRestock', restockProduct.id, restockProduct.revision, entry);
+    products = products.map(product => product.id === saved.id ? saved : product);
+    render();
+    restockEditor.close();
+    by('notice').textContent = '补货已保存。';
+  } catch (error) {
+    by('restockError').textContent = error.message || '无法保存补货，请重试。';
+  } finally {
+    restockBusy = false;
+    by('restockSave').disabled = by('restockClose').disabled = false;
+  }
+};
+
 function openStock(product) {
   stockProduct = product;
   stockForm.reset();
@@ -329,7 +396,7 @@ function openStock(product) {
   submit.hidden = product.received && !canShip;
   submit.textContent = product.received ? '保存出货' : '确认已进货';
   by('stockTitle').textContent = product.name + ' · ' + (product.received ? '出货与回本' : '确认进货');
-  by('stockHint').textContent = product.received ? '' : '确认后会计入已投入成本，并锁定本批进货金额和数量。';
+  by('stockHint').textContent = product.received ? '' : '确认后会计入已投入成本，以后可以用「补货」增加库存。';
   by('saleFields').hidden = by('estimatedSaleCosts').hidden = !canShip;
   for (const key of ['quantity', 'revenue', 'packaging']) stockForm.elements[key].disabled = !canShip;
   stockForm.elements.quantity.max = remaining;
@@ -579,7 +646,7 @@ refresh().then(() => {
   by('notice').textContent = error.message || '无法读取商品资料。请重新打开页面。';
 });
 window.addEventListener('focus', () => {
-  if (ready && !editor.open && !stockEditor.open && !busy) refresh().catch(() => {});
+  if (ready && !editor.open && !stockEditor.open && !restockEditor.open && !busy) refresh().catch(() => {});
 });
 
 </script>
