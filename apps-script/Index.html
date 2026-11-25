@@ -16,17 +16,21 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 @media(max-width:610px){.wrap{width:calc(100% - 28px)}.heading{margin-top:27px;align-items:flex-start}h1{font-size:26px}.stats{gap:7px}.card{display:flex;flex-direction:column;align-items:flex-start;padding:10px;gap:5px}.card strong{font-size:15px}.stat-icon{width:29px;height:29px;font-size:16px}.toolbar{align-items:flex-start;flex-direction:column;padding:14px}.filters{width:100%}.filters input{min-width:0;flex:1}.filters select{max-width:48%;padding-inline:5px}td,th{padding-inline:14px}}
 
 .row-actions{display:flex;gap:6px}#saleFields{margin-top:12px}#stockError{color:#ac2836}
+.stats .card:first-child{border-color:#b0c5fa;background:#f1f5ff}
 </style>
 
 </head>
 <body>
 <header class="bar"><div class="wrap brand"><span class="logo" aria-hidden="true">▤</span> 商品成本台账 <span class="divider"></span><span class="sub">网卖管理</span></div></header>
 <main class="wrap">
-<section class="heading"><div><h1>商品总览</h1><p>记录商品和费用，算清每件商品能赚多少。</p></div><button class="primary" id="add">＋ 新增商品</button></section>
-<section class="stats" aria-label="商品摘要">
-<div class="card"><span class="stat-icon" aria-hidden="true">▤</span><span>商品数量</span><strong id="count">0</strong></div>
-<div class="card"><span class="stat-icon" aria-hidden="true">↘</span><span>平均单件成本</span><strong id="avgCost">—</strong></div>
-<div class="card"><span class="stat-icon" aria-hidden="true">↗</span><span>平均单件利润</span><strong id="avgProfit">—</strong></div>
+<section class="heading"><div><h1>库存与回本总览</h1><p>以下合计涵盖所有已确认进货的商品。</p></div><button class="primary" id="add">＋ 新增商品</button></section>
+<section class="stats" aria-label="库存与回本合计">
+<div class="card"><span class="stat-icon" aria-hidden="true">◎</span><span>距离整体回本还差</span><strong id="gap">—</strong></div>
+<div class="card"><span class="stat-icon" aria-hidden="true">↘</span><span>累计总投入</span><strong id="spent">—</strong></div>
+<div class="card"><span class="stat-icon" aria-hidden="true">↗</span><span>扣费后已收回</span><strong id="recovered">—</strong></div>
+<div class="card"><span class="stat-icon" aria-hidden="true">▤</span><span>累计进货投入</span><strong id="purchaseSpent">—</strong></div>
+<div class="card"><span class="stat-icon" aria-hidden="true">↓</span><span>累计出货费用</span><strong id="shippingSpent">—</strong></div>
+<div class="card"><span class="stat-icon" aria-hidden="true">▧</span><span>累计出货件数</span><strong id="shipped">—</strong></div>
 </section>
 <section class="panel" aria-labelledby="listTitle">
 <div class="toolbar"><h2 id="listTitle">商品列表</h2><div class="filters"><input id="search" type="search" placeholder="搜索商品名称或 SKU" aria-label="搜索商品"></div></div>
@@ -142,6 +146,21 @@ function element(tag, value, className) {
   return node;
 }
 
+function summarizeInventory(items) {
+  const totals = {batches: 0, purchase: 0, fees: 0, revenue: 0, shipped: 0};
+  for (const product of items) {
+    if (!product.received) continue;
+    totals.batches++;
+    totals.purchase += product.purchaseTotal;
+    totals.fees += product.sellingCosts;
+    totals.revenue += product.revenue;
+    totals.shipped += product.sold;
+  }
+  const spent = totals.purchase + totals.fees;
+  const recovered = totals.revenue - totals.fees;
+  return {...totals, spent, recovered, gap: Math.max(0, spent - totals.revenue)};
+}
+
 function render() {
   const body = by('rows');
   body.replaceChildren();
@@ -188,13 +207,14 @@ function render() {
     actions.append(edit, stock);
     row.insertCell().append(actions);
   }
-  const totals = products.reduce((sum, p) => {
-    const result = calculate(p);
-    return { cost: sum.cost + result.cost, profit: sum.profit + (result.profit ?? 0), priced: sum.priced + Number(result.profit != null) };
-  }, {cost: 0, profit: 0, priced: 0});
-  by('count').textContent = products.length;
-  by('avgCost').textContent = products.length ? money(totals.cost / products.length) : '—';
-  by('avgProfit').textContent = totals.priced ? money(totals.profit / totals.priced) : '—';
+  const totals = summarizeInventory(products);
+  by('gap').textContent = totals.batches === 0 ? '—' : totals.gap ? money(totals.gap) : '已回本';
+  by('spent').textContent = money(totals.spent);
+  by('recovered').textContent = money(totals.recovered);
+  by('purchaseSpent').textContent = money(totals.purchase);
+  by('shippingSpent').textContent = money(totals.fees);
+  by('shipped').textContent = totals.shipped.toLocaleString('en-MY') + ' 件';
+
   by('empty').hidden = filtered.length > 0;
   by('emptyTitle').textContent = products.length ? '找不到符合条件的商品' : '还没有商品';
   by('emptyText').textContent = products.length ? '试试其他商品名称或 SKU。' : '新增第一个商品，就能看到单件成本和利润。';
