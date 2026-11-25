@@ -33,8 +33,7 @@ function setup() {
   }
   sheet.getRange(1, 18, 1, 2).setValues([HEADERS.slice(17, 19)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
   sheet.getRange(1, 20, 1, 4).setValues([HEADERS.slice(19, 23)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
-  sheet.getRange(1, 24).setValue(HEADERS[23]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
-  sheet.hideColumns(24);
+  ensureRestockHeader_(sheet);
   sheet.getRange('T2:T').setNumberFormat('yyyy-mm-dd hh:mm');
   sheet.getRange('V2:W').setNumberFormat('"RM "0.00');
   sheet.getRange('R2:R').setNumberFormat('"RM "0.00');
@@ -151,6 +150,15 @@ function suggestionFormula_(row) {
     row + ',I' + row + ')+IF(H' + row + '>0,0.005,0))/(1-H' + row + '-P' + row + '),2)))';
 }
 
+function ensureRestockHeader_(sheet) {
+  const header = sheet.getRange(1, 24);
+  const value = header.getValue();
+  if (value === HEADERS[23]) return;
+  if (value !== '') throw new Error('工作表的 X 列已有其他标题，无法自动启用补货记录。');
+  header.setValue(HEADERS[23]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+  sheet.hideColumns(24);
+}
+
 function recordRestock(id, revision, restock) {
   if (!restock) throw new Error('请输入补货件数和金额。');
   return updateInventory_(id, revision, null, restock);
@@ -169,10 +177,10 @@ function updateInventory_(id, revision, sale, restock) {
     const index = rows.findIndex(row => row[0] === id);
     if (index < 0 || rows[index][14] !== revision) throw new Error('商品已更新，请刷新后再试。');
     const row = rows[index];
+    if (restock) ensureRestockHeader_(sheet);
     const product = product_(row);
     if (restock) {
       if (!product.received) throw new Error('请先确认首次进货。');
-      if (sheet.getRange(1, 24).getValue() !== HEADERS[23]) throw new Error('请先运行新版 setup，再记录补货。');
       const {quantity, total} = restock;
       const newQuantity = product.quantity + quantity;
       const newTotal = product.purchaseTotal + total;
