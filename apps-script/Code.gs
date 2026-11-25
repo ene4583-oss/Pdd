@@ -1,6 +1,6 @@
 const PRODUCT_TAB = '网卖商品';
 const FIELDS = ['price', 'purchaseTotal', 'packaging', 'shipping', 'rate', 'other'];
-const HEADERS = ['商品 ID', '商品名称', 'SKU', '售价', '进货成本', '包装费', '卖家运费', '平台费率', '其他费用', '平台费', '单件总成本', '预估利润', '利润率', '照片文件 ID', '更新版本', '目标利润率', '建议售价 (RM)', '进货总金额 (RM)', '进货数量'];
+const HEADERS = ['商品 ID', '商品名称', 'SKU', '售价', '进货成本', '包装费', '卖家运费', '平台费率', '其他费用', '平台费', '单件总成本', '预估利润', '利润率', '照片文件 ID', '更新版本', '目标利润率', '建议售价 (RM)', '进货总金额 (RM)', '进货数量', '进货确认时间', '累计出货数量', '实际销售收入', '已记销售费用'];
 
 function setup() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
@@ -31,7 +31,10 @@ function setup() {
       sheet.getRange(1, 16, 1, 2).setValues([HEADERS.slice(15, 17)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
     }
   }
-  sheet.getRange(1, 18, 1, 2).setValues([HEADERS.slice(17)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+  sheet.getRange(1, 18, 1, 2).setValues([HEADERS.slice(17, 19)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+  sheet.getRange(1, 20, 1, 4).setValues([HEADERS.slice(19)]).setBackground('#12213b').setFontColor('#ffffff').setFontWeight('bold');
+  sheet.getRange('T2:T').setNumberFormat('yyyy-mm-dd hh:mm');
+  sheet.getRange('V2:W').setNumberFormat('"RM "0.00');
   sheet.getRange('R2:R').setNumberFormat('"RM "0.00');
   sheet.getRange('S2:S').setNumberFormat('0');
   sheet.getRange('P2:P').setNumberFormat('0.00%');
@@ -64,8 +67,9 @@ function productRows_(sheet) {
 function product_(row) {
   const cents = value => Math.round(Number(value) * 100);
   return {
-    id: row[0], name: row[1], sku: String(row[2]), price: cents(row[3]), purchase: cents(row[4]),
+    id: row[0], name: row[1], sku: String(row[2]), price: row[3] === '' ? null : cents(row[3]), purchase: cents(row[4]),
     purchaseTotal: row[17] === '' ? cents(row[4]) : cents(row[17]), quantity: Number(row[18]) || 1,
+    received: Boolean(row[19]), sold: Number(row[20]) || 0, revenue: cents(row[21]), sellingCosts: cents(row[22]),
     packaging: cents(row[5]), shipping: cents(row[6]), rate: Math.round(Number(row[7]) * 10000),
     other: cents(row[8]), photo: Boolean(row[13]), revision: row[14], target: row[15] === '' ? 2000 : Math.round(Number(row[15]) * 10000),
   };
@@ -88,8 +92,8 @@ function saveProduct(input, photoData) {
       typeof input.sku !== 'string' || input.sku.length > 60 ||
       !Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 999999999 ||
       !Number.isInteger(input.target) || input.target < 0 || input.target > 10000 ||
-      FIELDS.some(key => !Number.isSafeInteger(input[key]) || input[key] < 0 ||
-        input[key] > (key === 'rate' ? 10000 : 99999999900))) throw new Error('请检查商品名称和金额。');
+      FIELDS.some(key => !(key === 'price' && input.price === null) &&
+        (!Number.isSafeInteger(input[key]) || input[key] < 0 || input[key] > (key === 'rate' ? 10000 : 99999999900)))) throw new Error('请检查商品名称和金额。');
   const photo = photoData ? /^data:(image\/(?:webp|png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(photoData) : null;
   if (photoData && (!photo || photoData.length > 5 * 1024 * 1024)) throw new Error('照片格式无效或文件过大。');
 
@@ -103,6 +107,12 @@ function saveProduct(input, photoData) {
     if ((current ? current[14] : null) !== (input.revision || null)) {
       throw new Error('商品已更新，请关闭编辑后刷新。');
     }
+    if (current && current[19]) {
+      const recorded = product_(current);
+      if (input.purchaseTotal !== recorded.purchaseTotal || input.quantity !== recorded.quantity) {
+        throw new Error('进货已确认，原批次的数量和金额已锁定。');
+      }
+    }
     const rowNumber = index >= 0 ? index + 2 : sheet.getLastRow() + 1;
     if (rowNumber > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), 1);
     const oldFile = current ? current[13] : '';
@@ -114,14 +124,15 @@ function saveProduct(input, photoData) {
     const file = newFile || (input.keepPhoto ? oldFile : '');
     const textCell = value => "'" + value;
     const row = [
-      input.id, textCell(input.name.trim()), input.sku.trim() ? textCell(input.sku.trim()) : '', input.price / 100,
+      input.id, textCell(input.name.trim()), input.sku.trim() ? textCell(input.sku.trim()) : '', input.price === null ? '' : input.price / 100,
       '=IF(OR(R' + rowNumber + '="",S' + rowNumber + '<1),"",ROUND(R' + rowNumber + '/S' + rowNumber + ',2))',
       input.packaging / 100, input.shipping / 100, input.rate / 10000, input.other / 100,
-      '=ROUND(D' + rowNumber + '*H' + rowNumber + ',2)',
+      '=IF(D' + rowNumber + '=,,ROUND(D' + rowNumber + '*H' + rowNumber + ',2))',
       '=ROUND(SUM(E' + rowNumber + ':G' + rowNumber + ',I' + rowNumber + ':J' + rowNumber + '),2)',
-      '=ROUND(D' + rowNumber + '-K' + rowNumber + ',2)',
+      '=IF(D' + rowNumber + '=,,ROUND(D' + rowNumber + '-K' + rowNumber + ',2))',
       '=IF(D' + rowNumber + '=0,"",L' + rowNumber + '/D' + rowNumber + ')',
       file, Utilities.getUuid(), input.target / 10000, suggestionFormula_(rowNumber), input.purchaseTotal / 100, input.quantity,
+      ...(current ? current.slice(19, 23) : ['', 0, 0, 0]),
     ];
     sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
     SpreadsheetApp.flush();
@@ -135,6 +146,52 @@ function saveProduct(input, photoData) {
 function suggestionFormula_(row) {
   return '=IF(H' + row + '+P' + row + '>=1,"",MAX(0.01,ROUNDUP((SUM(E' + row + ':G' +
     row + ',I' + row + ')+IF(H' + row + '>0,0.005,0))/(1-H' + row + '-P' + row + '),2)))';
+}
+
+function recordInventory(id, revision, sale) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const sheet = shopSheet_();
+    const rows = productRows_(sheet);
+    const index = rows.findIndex(row => row[0] === id);
+    if (index < 0 || rows[index][14] !== revision) throw new Error('商品已更新，请刷新后再试。');
+    const row = rows[index];
+    const product = product_(row);
+    if (!sale) {
+      if (product.received) return product;
+      row[19] = new Date();
+      // Convert legacy unit-only entries to a one-item batch when confirmed.
+      if (row[17] === '') row[17] = product.purchaseTotal / 100;
+      if (row[18] === '') row[18] = product.quantity;
+    } else {
+      if (!product.received) throw new Error('请先确认进货。');
+      if (!Number.isInteger(sale.quantity) || sale.quantity < 1 || sale.quantity > product.quantity - product.sold ||
+          !Number.isSafeInteger(sale.revenue) || sale.revenue < 0 || sale.revenue > 99999999900) {
+        throw new Error('请检查出货数量和实际销售收入。出货数量不能超过库存。');
+      }
+      const fee = Math.round(sale.revenue * product.rate / 10000);
+      const estimated = fee + sale.quantity * (product.packaging + product.shipping + product.other);
+      const costs = sale.costs === null ? estimated : sale.costs;
+      if (!Number.isSafeInteger(costs) || costs < 0 || costs > 99999999900 ||
+          product.revenue + sale.revenue > 99999999900 || product.sellingCosts + costs > 99999999900) {
+        throw new Error('销售金额或费用超出可记录范围。');
+      }
+      row[20] = product.sold + sale.quantity;
+      row[21] = (product.revenue + sale.revenue) / 100;
+      row[22] = (product.sellingCosts + costs) / 100;
+    }
+    row[14] = Utilities.getUuid();
+    // Preserve the existing spreadsheet formulas between version and inventory fields.
+    const values = [row[14], ...sheet.getRange(index + 2, 16, 1, 2).getValues()[0]];
+    values[2] = sheet.getRange(index + 2, 17).getFormula() || values[2];
+    values.push(...row.slice(17, 23));
+    sheet.getRange(index + 2, 15, 1, values.length).setValues([values]);
+    SpreadsheetApp.flush();
+    return product_(row);
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function deleteProduct(id, revision) {

@@ -11,10 +11,11 @@
 .heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:42px 0 25px}h1{margin:0;font-size:34px;letter-spacing:-.04em}p{color:var(--muted);font-size:14px;line-height:1.6;margin:8px 0 0}
 button,select,input{border:1px solid #c9d4e2;border-radius:8px;background:white;color:inherit;padding:10px 13px}button{font-weight:650;font-size:14px;white-space:nowrap}button:hover{background:#edf2f8}.primary{background:var(--blue);color:white;border-color:var(--blue);padding:11px 16px}.primary:hover{background:#143ba0}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:26px}
 .card,.panel{background:white;border:1px solid var(--border);border-radius:14px}.card{display:grid;grid-template-columns:42px 1fr;gap:4px 13px;align-items:center;padding:19px;color:var(--muted);font-size:13px}.card strong{color:#172538;font-size:24px;overflow-wrap:anywhere}.stat-icon{width:42px;height:42px;border-radius:11px;background:#eaf0fd;color:#244db9;grid-row:span 2;display:grid;place-items:center;font-size:21px}.card:last-child .stat-icon{background:#e5f5ed;color:var(--green)}
-.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px}.toolbar h2,.modal-head h2{font-size:18px;margin:0}.filters{display:flex;gap:8px}.filters input,.filters select{font-size:13px}.scroll{overflow:auto}table{width:100%;min-width:790px;border-collapse:collapse;text-align:left;font-size:14px}th{font-size:13px;color:#46566c;background:#f2f5fa;font-weight:650}td,th{padding:13px 20px;border-block:1px solid #e6ecf3;white-space:nowrap}td{font-variant-numeric:tabular-nums}.product{display:flex;gap:10px;align-items:center}.product img,.placeholder{width:42px;height:42px;object-fit:cover;border-radius:8px;background:#eaf0fd}.placeholder{display:grid;place-items:center;color:#3458ad}.sku{display:block;color:var(--muted);font-size:12px;margin-top:4px}.product strong{white-space:normal;overflow-wrap:anywhere}.positive{color:var(--green)}.negative,.danger,#error{color:#ac2836}.empty{text-align:center;padding:44px 15px}.empty-icon{width:56px;height:56px;border-radius:15px;background:#eaf0fd;color:var(--blue);display:grid;place-items:center;margin:auto;font-size:28px}.empty h3{margin:14px 0 0}.empty button{margin-top:17px}.list-footer{padding:12px 20px;color:var(--muted);font-size:13px;border-top:1px solid #e6ecf3}.foot{margin:15px 0 25px;font-size:12px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px}.toolbar h2,.modal-head h2{font-size:18px;margin:0}.filters{display:flex;gap:8px}.filters input,.filters select{font-size:13px}.scroll{overflow:auto}table{width:100%;min-width:1020px;border-collapse:collapse;text-align:left;font-size:14px}th{font-size:13px;color:#46566c;background:#f2f5fa;font-weight:650}td,th{padding:13px 20px;border-block:1px solid #e6ecf3;white-space:nowrap}td{font-variant-numeric:tabular-nums}.product{display:flex;gap:10px;align-items:center}.product img,.placeholder{width:42px;height:42px;object-fit:cover;border-radius:8px;background:#eaf0fd}.placeholder{display:grid;place-items:center;color:#3458ad}.sku{display:block;color:var(--muted);font-size:12px;margin-top:4px}.product strong{white-space:normal;overflow-wrap:anywhere}.positive{color:var(--green)}.negative,.danger,#error{color:#ac2836}.empty{text-align:center;padding:44px 15px}.empty-icon{width:56px;height:56px;border-radius:15px;background:#eaf0fd;color:var(--blue);display:grid;place-items:center;margin:auto;font-size:28px}.empty h3{margin:14px 0 0}.empty button{margin-top:17px}.list-footer{padding:12px 20px;color:var(--muted);font-size:13px;border-top:1px solid #e6ecf3}.foot{margin:15px 0 25px;font-size:12px}
 dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:1px solid var(--border);border-radius:16px;padding:0;color:inherit}dialog::backdrop{background:#12213b99}.modal-head,.modal-foot{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px}.modal-head{border-bottom:1px solid var(--border)}.modal-foot{border-top:1px solid var(--border)}.modal-body{padding:16px 20px}.modal-body h3{font-size:15px;margin:20px 0 10px}.modal-body h3 span{font-size:12px;color:var(--muted)}.fields,.estimate{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fields input{display:block;width:100%;margin-top:5px}label,.estimate{font-size:13px;font-weight:600}.photo{display:flex;gap:12px;align-items:center;margin-bottom:14px}.photo img{width:72px;height:72px;border-radius:8px;object-fit:cover}.photo input{display:block;margin-top:5px;max-width:100%;font-size:12px}.estimate{margin-top:16px;padding:13px;background:#edf2fb;border-radius:8px;color:#43536c}.estimate strong{display:block;color:#15243a;margin-top:3px}.actions{display:flex;gap:8px;margin-left:auto}.link,.icon-button{border:0;background:transparent;color:var(--blue)}.link{padding:4px 0}.icon-button{font-size:24px;line-height:1;padding:4px 8px}.danger{border-color:#f0cbd0}#error:empty,#notice:empty{display:none}#notice{color:var(--green)}
 @media(max-width:610px){.wrap{width:calc(100% - 28px)}.heading{margin-top:27px;align-items:flex-start}h1{font-size:26px}.stats{gap:7px}.card{display:flex;flex-direction:column;align-items:flex-start;padding:10px;gap:5px}.card strong{font-size:15px}.stat-icon{width:29px;height:29px;font-size:16px}.toolbar{align-items:flex-start;flex-direction:column;padding:14px}.filters{width:100%}.filters input{min-width:0;flex:1}.filters select{max-width:48%;padding-inline:5px}td,th{padding-inline:14px}}
 
+.row-actions{display:flex;gap:6px}#saleFields{margin-top:12px}#stockError{color:#ac2836}
 </style>
 
 </head>
@@ -29,7 +30,7 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 </section>
 <section class="panel" aria-labelledby="listTitle">
 <div class="toolbar"><h2 id="listTitle">商品列表</h2><div class="filters"><input id="search" type="search" placeholder="搜索商品名称或 SKU" aria-label="搜索商品"></div></div>
-<div class="scroll"><table><thead><tr><th scope="col">商品</th><th scope="col">售价</th><th scope="col">建议售价</th><th scope="col">单件总成本</th><th scope="col">预估利润</th><th scope="col">利润率</th><th scope="col">操作</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="scroll"><table><thead><tr><th scope="col">商品</th><th scope="col">售价</th><th scope="col">建议售价</th><th scope="col">单件总成本</th><th scope="col">预估利润</th><th scope="col">利润率</th><th scope="col">出货 / 库存</th><th scope="col">回本状态</th><th scope="col">操作</th></tr></thead><tbody id="rows"></tbody></table></div>
 <div id="empty" class="empty" hidden><div class="empty-icon" aria-hidden="true">▤</div><h3 id="emptyTitle"></h3><p id="emptyText"></p><button class="primary" id="emptyAdd">＋ 新增商品</button></div>
 <div id="listFooter" class="list-footer"></div>
 </section>
@@ -43,7 +44,7 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 <div class="fields"><label>商品名称<input name="name" required maxlength="100" placeholder="例如 帆布手提包"></label><label>商品编号 SKU（选填）<input name="sku" maxlength="60" placeholder="例如 BAG-001"></label></div>
 <h3>售价与单件费用 <span id="formCurrency"></span></h3>
 <div class="fields">
-<label>售价<input name="price" type="number" min="0" max="999999999" step="0.01" required placeholder="0.00"></label>
+<label>售价（选填）<input name="price" type="number" min="0" max="999999999" step="0.01" placeholder="待定"></label>
 <label>进货总金额<input name="purchaseTotal" type="number" min="0" max="999999999" step="0.01" required placeholder="0.00"></label>
 <label>进货数量（件）<input name="quantity" type="number" min="1" max="999999999" step="1" required placeholder="例如 50"></label>
 <label>包装费<input name="packaging" type="number" min="0" max="999999999" step="0.01" placeholder="0.00"></label>
@@ -57,10 +58,31 @@ dialog{width:min(570px,calc(100% - 24px));max-height:calc(100dvh - 24px);border:
 </div>
 <div class="modal-foot"><button type="button" id="delete" class="danger">删除商品</button><div class="actions"><button type="button" id="cancel">取消</button><button class="primary" id="save" type="submit">保存商品</button></div></div>
 </form></dialog>
+<dialog id="stockEditor" aria-labelledby="stockTitle">
+<form id="stockForm">
+<div class="modal-head"><h2 id="stockTitle"></h2><button type="button" id="stockClose" class="icon-button" aria-label="关闭">×</button></div>
+<div class="modal-body">
+<div class="estimate" id="stockSummary"></div>
+<p id="stockHint"></p>
+<div id="saleFields" class="fields">
+<label>本次出货数量（件）<input name="quantity" type="number" min="1" step="1" required></label>
+<label>本次实际销售收入（RM）<input name="revenue" type="number" min="0" max="999999999" step="0.01" required></label>
+<label>本次实际销售费用（RM，选填）<input name="costs" type="number" min="0" max="999999999" step="0.01"></label>
+</div>
+<p id="estimatedSaleCosts" hidden>销售费用留空时，按商品设定的平台费率、包装、运费和其他费用估算。</p>
+<p id="stockError" role="alert"></p>
+</div>
+<div class="modal-foot"><div class="actions"><button class="primary" id="stockSave" type="submit"></button></div></div>
+</form>
+</dialog>
 <script>
 const by = id => document.getElementById(id);
 const form = by('productForm');
 const editor = by('editor');
+const stockEditor = by('stockEditor');
+const stockForm = by('stockForm');
+let stockProduct;
+let stockBusy = false;
 const amounts = ['price', 'purchaseTotal', 'packaging', 'shipping', 'rate', 'other', 'target'];
 let ready = false, products = [], active, photo, preview, busy = false;
 const money = cents => 'RM ' + (cents / 100).toLocaleString('en-MY', {
@@ -69,9 +91,9 @@ const money = cents => 'RM ' + (cents / 100).toLocaleString('en-MY', {
 const percentage = value => value == null ? '—' : value.toFixed(1) + '%';
 
 function calculate(p) {
-  const fee = Number((BigInt(p.price) * BigInt(p.rate) + 5000n) / 10000n);
-  const cost = p.purchase + p.packaging + p.shipping + p.other + fee;
-  const profit = p.price - cost;
+  const fee = p.price == null ? null : Number((BigInt(p.price) * BigInt(p.rate) + 5000n) / 10000n);
+  const cost = p.purchase + p.packaging + p.shipping + p.other + (fee ?? 0);
+  const profit = p.price == null ? null : p.price - cost;
   const remaining = 10000 - p.rate - p.target;
   const base = p.purchase + p.packaging + p.shipping + p.other;
   const numerator = BigInt(base) * 10000n + (p.rate > 0 ? 5000n : 0n);
@@ -145,25 +167,34 @@ function render() {
     if (p.sku) labels.append(element('span', p.sku, 'sku'));
     info.append(labels);
     row.insertCell().append(info);
-    row.insertCell().textContent = money(p.price);
+    row.insertCell().textContent = p.price == null ? '待定' : money(p.price);
     row.insertCell().textContent = suggested == null ? '无法达到' : money(suggested);
     row.insertCell().textContent = money(cost);
     const profitCell = row.insertCell();
-    profitCell.textContent = money(profit);
+    profitCell.textContent = profit == null ? '—' : money(profit);
     profitCell.className = profit < 0 ? 'negative' : profit > 0 ? 'positive' : '';
     row.insertCell().textContent = percentage(margin);
+    row.insertCell().textContent = p.received ? p.sold + ' 已出 / ' + (p.quantity - p.sold) + ' 剩余' : '未进货';
+    const net = p.revenue - p.sellingCosts;
+    row.insertCell().textContent = p.received
+      ? (net >= p.purchaseTotal ? '已回本' : '差 ' + money(p.purchaseTotal - net))
+      : '—';
     const edit = element('button', '查看 / 编辑');
     edit.setAttribute('aria-label', '查看或编辑 ' + p.name);
     edit.addEventListener('click', () => openEditor(p));
-    row.insertCell().append(edit);
+    const stock = element('button', p.received ? (p.sold < p.quantity ? '记录出货' : '查看出货') : '确认进货');
+    stock.addEventListener('click', () => openStock(p));
+    const actions = element('div', null, 'row-actions');
+    actions.append(edit, stock);
+    row.insertCell().append(actions);
   }
   const totals = products.reduce((sum, p) => {
     const result = calculate(p);
-    return { cost: sum.cost + result.cost, profit: sum.profit + result.profit };
-  }, {cost: 0, profit: 0});
+    return { cost: sum.cost + result.cost, profit: sum.profit + (result.profit ?? 0), priced: sum.priced + Number(result.profit != null) };
+  }, {cost: 0, profit: 0, priced: 0});
   by('count').textContent = products.length;
   by('avgCost').textContent = products.length ? money(totals.cost / products.length) : '—';
-  by('avgProfit').textContent = products.length ? money(totals.profit / products.length) : '—';
+  by('avgProfit').textContent = totals.priced ? money(totals.profit / totals.priced) : '—';
   by('empty').hidden = filtered.length > 0;
   by('emptyTitle').textContent = products.length ? '找不到符合条件的商品' : '还没有商品';
   by('emptyText').textContent = products.length ? '试试其他商品名称或 SKU。' : '新增第一个商品，就能看到单件成本和利润。';
@@ -175,7 +206,8 @@ function readAmounts() {
   const values = Object.fromEntries(amounts.map(key => [key, Math.round((Number(form.elements[key].value) || 0) * 100)]));
   const quantity = Number(form.elements.quantity.value);
   const purchase = quantity > 0 ? Math.round(values.purchaseTotal / quantity) : 0;
-  return {...values, quantity, purchase};
+  const price = form.elements.price.value === '' ? null : values.price;
+  return {...values, price, quantity, purchase};
 }
 
 function updateEstimate() {
@@ -210,6 +242,8 @@ function showPhoto() {
 function openEditor(product) {
   if (!ready) return;
   form.reset();
+  form.elements.purchaseTotal.readOnly = false;
+  form.elements.quantity.readOnly = false;
   active = product;
   photo = product?.photo || null;
   by('error').textContent = '';
@@ -221,7 +255,11 @@ function openEditor(product) {
     form.elements.name.value = product.name;
     form.elements.sku.value = product.sku;
     form.elements.quantity.value = product.quantity;
-    for (const key of amounts) form.elements[key].value = product[key] / 100;
+    for (const key of amounts) form.elements[key].value = product[key] == null ? '' : product[key] / 100;
+    if (product.received) {
+      form.elements.purchaseTotal.readOnly = true;
+      form.elements.quantity.readOnly = true;
+    }
   }
   showPhoto();
   updateEstimate();
@@ -238,6 +276,66 @@ async function refresh() {
   products = await rpc('listProducts');
   render();
 }
+
+function openStock(product) {
+  stockProduct = product;
+  stockForm.reset();
+  by('stockError').textContent = '';
+  const remaining = product.quantity - product.sold;
+  const canShip = product.received && remaining > 0;
+  const submit = by('stockSave');
+  submit.hidden = product.received && !canShip;
+  submit.textContent = product.received ? '保存出货' : '确认已进货';
+  by('stockTitle').textContent = product.name + ' · ' + (product.received ? '出货与回本' : '确认进货');
+  by('stockHint').textContent = product.received ? '' : '确认后会计入已投入成本，并锁定本批进货金额和数量。';
+  by('saleFields').hidden = by('estimatedSaleCosts').hidden = !canShip;
+  for (const key of ['quantity', 'revenue', 'costs']) stockForm.elements[key].disabled = !canShip;
+  stockForm.elements.quantity.max = remaining;
+  const net = product.revenue - product.sellingCosts;
+  const items = product.received ? [
+    ['已投入进货成本', money(product.purchaseTotal)],
+    ['已记销售费用', money(product.sellingCosts)],
+    ['累计投入（含销售费用）', money(product.purchaseTotal + product.sellingCosts)],
+    ['实际销售收入', money(product.revenue)],
+    ['扣费用后收回', money(net)],
+    ['累计出货 / 剩余', product.sold + ' 件 / ' + remaining + ' 件'],
+    ['回本状态', net >= product.purchaseTotal ? '已回本' : '还差 ' + money(product.purchaseTotal - net)]
+  ] : [['本批数量', product.quantity + ' 件'], ['本批进货金额', money(product.purchaseTotal)]];
+  by('stockSummary').replaceChildren(...items.map(([label, value]) => {
+    const item = element('div', label);
+    item.append(element('strong', value));
+    return item;
+  }));
+  stockEditor.showModal();
+}
+
+by('stockClose').onclick = () => stockEditor.close();
+stockEditor.addEventListener('cancel', event => { if (stockBusy) event.preventDefault(); });
+stockForm.onsubmit = async event => {
+  event.preventDefault();
+  if (stockBusy) return;
+  const fields = stockForm.elements;
+  const sale = stockProduct.received ? {
+    quantity: Number(fields.quantity.value),
+    revenue: Math.round(Number(fields.revenue.value) * 100),
+    costs: fields.costs.value === '' ? null : Math.round(Number(fields.costs.value) * 100)
+  } : null;
+  stockBusy = true;
+  by('stockSave').disabled = by('stockClose').disabled = true;
+  by('stockError').textContent = '';
+  try {
+    const saved = await rpc('recordInventory', stockProduct.id, stockProduct.revision, sale);
+    products = products.map(product => product.id === saved.id ? saved : product);
+    render();
+    stockEditor.close();
+    by('notice').textContent = sale ? '出货已保存。' : '已确认进货。';
+  } catch (error) {
+    by('stockError').textContent = error.message || '无法保存，请重试。';
+  } finally {
+    stockBusy = false;
+    by('stockSave').disabled = by('stockClose').disabled = false;
+  }
+};
 
 by('add').onclick = by('emptyAdd').onclick = () => openEditor();
 by('search').oninput = render;
@@ -333,7 +431,7 @@ refresh().then(() => {
   by('notice').textContent = error.message || '无法读取商品资料。请重新打开页面。';
 });
 window.addEventListener('focus', () => {
-  if (ready && !editor.open && !busy) refresh().catch(() => {});
+  if (ready && !editor.open && !stockEditor.open && !busy) refresh().catch(() => {});
 });
 
 </script>
